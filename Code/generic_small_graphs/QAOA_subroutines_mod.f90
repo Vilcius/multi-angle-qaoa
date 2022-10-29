@@ -224,7 +224,7 @@ subroutine Generate_angles(n_angles,angles)
 	use parameters
 	implicit none
 
-	integer :: i
+	integer :: i,q0,q1,max_deg
 	integer :: n_angles
 	double precision :: junk(6)
 	double precision :: angles(n_angles)
@@ -256,17 +256,40 @@ subroutine Generate_angles(n_angles,angles)
 			call random_number(tmp)
 			angles(2*p_max) = 2*pi*(tmp-0.5d0)
 		!print *, 'angles:', (angles(i),i=1,2*p)
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! if ma-QAOA
 	else if (many_angles) then
+        ! find maximal degree of each graph
+        max_deg = maxval(vertex_degrees(graph_num,:))
+        ! calculate beta angles
 		do i = 1,n_qubits
-    		call random_number(tmp)
-    		angles(i) = beta_max*2.d0*(tmp-0.5d0)
+            ! if setting maximal degree vertices to 0
+            ! if (set_max_degree .and. (vertex_degrees(graph_num, i-1) .eq. max_deg)) then
+            !     angles(i) = 0.d0
+            ! else
+                call random_number(tmp)
+                angles(i) = beta_max*2.d0*(tmp-0.5d0)
+            ! endif
     	enddo
     	beta_ma = angles(1:n_qubits*p_max)
+
+        ! calculate gamma angles
     	do i = 1,n_edges
-    		call random_number(tmp)
-    		angles(n_qubits*p_max+i) = gamma_max*2.d0*(tmp-0.5d0)
+            q0 = edges(i-1,0)
+            q1 = edges(i-1,1)
+            ! if setting maximal degree vertices to 0
+            if (set_max_degree .and. ((vertex_degrees(graph_num, q0) .eq. max_deg) &
+                .or. (vertex_degrees(graph_num, q1) .eq.  max_deg))) then
+                angles(n_qubits*p_max+i) = 0.d0
+            else
+                call random_number(tmp)
+                angles(n_qubits*p_max+i) = gamma_max*2.d0*(tmp-0.5d0)
+            endif
     	enddo
     	gamma_ma(1:n_angles-p_max*n_qubits) = angles(n_qubits*p_max+1:n_angles)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     elseif (even_odd_only .and. even_odd_angle_dist) then
     	do i = 1,p_max
     		call random_number(tmp)
@@ -532,8 +555,8 @@ subroutine Calc_cz_vec(BFGS_loops)
 
 		call calc_vertex_degrees
 
-		if (all_odd_degree(graph_num)) print *, graph_num,'all odd degree'
-		if (all_even_degree(graph_num)) print *, graph_num,'all even degree'
+		!if (all_odd_degree(graph_num)) print *, graph_num,'all odd degree'
+		!if (all_even_degree(graph_num)) print *, graph_num,'all even degree'
 
 		if (all_even_degree(graph_num) .or. all_odd_degree(graph_num)) n_graphs_even_odd = n_graphs_even_odd+1
 		

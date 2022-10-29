@@ -1,15 +1,15 @@
-
 module parameters
 
 implicit none
 
-character*200 :: save_folder='test/'
+character*200, parameter :: save_folder='tesst/bfgs_2_gamma/ma_p=2/run_5/'
 character*200, parameter :: graph_file='../../Graph_Files/n=8/graph8c.txt'
 
 integer, parameter :: n_qubits=8
-integer, parameter :: p_max=1, smaller_p=1
+integer, parameter :: smaller_p=1
+integer, parameter :: p_max=2
 
-integer, parameter :: min_good_loops=1
+integer, parameter :: min_good_loops=2
 integer, parameter :: graph_of_interest=1
 
 integer, parameter :: dim=2**n_qubits, n_edges_max=n_qubits*(n_qubits-1)/2
@@ -25,8 +25,8 @@ logical, parameter :: even_odd_only=.false., even_odd_angle_dist=.false., not_ev
 logical, parameter :: no_opt=.false.
 logical, parameter :: Optimize_expec_C=.true.,Optimize_p_Cmax=.false.,Optimize_Sq=.false.
 logical, parameter :: fix_sign_beta1=.false.,fix_sign_gamma1=.false.,fix_sign_positive=.false.
-logical, parameter :: single_graph=.false.
-integer, parameter :: single_graph_num = 70
+logical, parameter :: single_graph=.true.
+integer, parameter :: single_graph_num = 4115
 integer :: graph_num_tot,graph_num
 integer :: degeneracy_cz_max
 logical, parameter :: fixed_number_iterations=.true.
@@ -60,5 +60,6 @@ integer :: weight_num
 integer, allocatable :: z_max(:)
 integer, allocatable :: good_loops(:), vertex_degrees(:,:)
 logical, allocatable :: all_odd_degree(:),all_even_degree(:)
+logical :: set_max_degree=.true.
 
 end module parameters

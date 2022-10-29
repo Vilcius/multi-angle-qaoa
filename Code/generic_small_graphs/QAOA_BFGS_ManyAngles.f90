@@ -58,19 +58,23 @@ allocate(C_opt(graph_num_tot),Beta_opt(graph_num_tot,p_max),Gamma_opt(graph_num_
 		& all_odd_degree(graph_num_tot),all_even_degree(graph_num_tot), &
 		& random_graphs_reverse_mapping(graph_num_tot))
 
-if (many_angles) allocate(n_angles_ma(graph_num_tot),beta_opt_ma(graph_num_tot,n_qubits*p_max),&
+if (many_angles) then
+    allocate(n_angles_ma(graph_num_tot),beta_opt_ma(graph_num_tot,n_qubits*p_max),&
 		& gamma_opt_ma(graph_num_tot,n_edges_max*p_max))
+    gamma_opt_ma=0.d0
+    beta_opt_ma=0.d0
+endif
 
 it_dat=1000.d0
-gamma_opt_ma=0.d0
-beta_opt_ma=0.d0
 
-print *, 'graph_num_tot:', graph_num_tot
+!print *, 'graph_num_tot:', graph_num_tot
 good_loops=0
 vertex_degrees=0
 C_opt=0.d0
 
-print *, 'random graph set:'
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! choose which graphs we are using
+!print *, 'random graph set:'
 if (use_random_graph_subset) then
 	open(2,file='random_graph_set',status='unknown')
 	if (generate_random_graph_set) then
@@ -108,6 +112,8 @@ endif
 
 if (many_angles) allocate( gamma_vec_ma(0:2**n_qubits-1) )
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! start doing the algorithm?
 do while (more_loops)
 
 	open(1,file=trim(graph_file),status='old')
@@ -141,6 +147,8 @@ do while (more_loops)
 
 		if (more_graphs) then
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! start to choose angles for algorithm
 			if (variable_gamma) then
 				n_gamma_angles = p_max*n_edges
 			else
@@ -152,7 +160,9 @@ do while (more_loops)
 			else
 				n_beta_angles = p_max
 			endif
-			n_angles_ma(graph_num) = n_beta_angles + n_gamma_angles
+            if (many_angles) then
+                n_angles_ma(graph_num) = n_beta_angles + n_gamma_angles
+            endif
 
 			if ( (good_loops(graph_num) .lt. min_good_loops)) then
 				if (random_graph) more_graphs=.false.
@@ -161,27 +171,44 @@ do while (more_loops)
 
 				if ( check_this_graph ) then
 					
-					if (many_angles) allocate(gamma_ma(n_gamma_angles),beta_ma(n_beta_angles),angles_ma(n_angles_ma(graph_num)))
+					if (many_angles) then
+                        allocate(gamma_ma(n_gamma_angles),beta_ma(n_beta_angles),angles_ma(n_angles_ma(graph_num)))
+                        call Generate_angles(n_angles_ma(graph_num),angles_ma)
+                    else
+                        call Generate_angles(2*p_max, angles)
+                    endif
 
-					call Generate_angles(n_angles_ma(graph_num),angles_ma)
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! if we want to optimize <C>
 					if (optimize_Expec_C) then
 						if (many_angles) then
 
 							call dfpmin(angles_ma,n_angles_ma(graph_num),gtol,iter,fret,QAOA_ExpecC_ma,dfunc)
 							C=-fret*cz_max_save(graph_num)
+                        else
+
+							call dfpmin(angles,2*p_max,gtol,iter,fret,QAOA_ExpecC,dfunc)
+							C=-fret*cz_max_save(graph_num)
 						endif
 						
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! if <C> > <C>_opt + epsilon, then run ma-QAOA, and set loops to 0
 				     	if (C .gt. (C_opt(graph_num)+convergence_tolerance) ) then
 					    	C_opt(graph_num) = C
-					    	Beta_opt_ma(graph_num,1:n_beta_angles) = angles_ma(1:n_beta_angles)
-					    	Gamma_opt_ma(graph_num,1:n_angles_ma(graph_num)-n_beta_angles) = angles_ma(n_beta_angles+1:n_angles_ma(graph_num))
 					    	if (many_angles) then
+                                beta_opt_ma(graph_num,1:n_beta_angles) = angles_ma(1:n_beta_angles)
+                                gamma_opt_ma(graph_num,1:n_angles_ma(graph_num)-n_beta_angles) = angles_ma(&
+                                    n_beta_angles+1:n_angles_ma(graph_num))
 					    		p_C_max(graph_num) = -QAOA_pmax_ma(n_angles_ma(graph_num),angles_ma)
 					    	else
+                                beta_opt(graph_num, 1:p_max) = angles(1:p_max)
+                                gamma_opt(graph_num, 1:p_max) = angles(p_max+1:2*p_max)
 					    		p_C_max(graph_num) = -QAOA_pmax(2*p_max,angles)
 					    	endif
 					    	good_loops(graph_num) = 0
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! else, don't run ma-QAOA and loop again
 					    else
 					    	good_loops(graph_num) = good_loops(graph_num)+1
 					    endif
@@ -221,33 +248,66 @@ do while (more_loops)
 
 enddo
 
-
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! writing to the QAOA_dat file
 open(2,file=trim(save_folder)//'QAOA_dat',status='unknown')
-do graph_num = 1,graph_num_tot
-	if (many_angles) then
-		write(2,*) graph_num, cz_max_save(graph_num), C0(graph_num), C_opt(graph_num), p_C_max(graph_num), p_max, &
-			& (beta_opt_ma(graph_num,j)/pi,j=1,n_beta_angles), (gamma_opt_ma(graph_num,j)/pi,j=1,n_angles_ma(graph_num)-n_beta_angles)
-	else
-		write(2,*) graph_num, cz_max_save(graph_num), C0(graph_num), C_opt(graph_num), p_C_max(graph_num), p_max, &
-			& (beta_opt(graph_num,j)/pi,j=1,p_max), (gamma_opt(graph_num,j)/pi,j=1,p_max)
-	endif
-enddo
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! If we are using a single graph, only print that data
+if (single_graph) then
+    if (many_angles) then
+        write(2,*) single_graph_num, cz_max_save(single_graph_num), C0(single_graph_num), C_opt(single_graph_num), &
+            p_C_max(single_graph_num), p_max, (beta_opt_ma(single_graph_num,j)/pi,j=1,n_beta_angles), &
+            (gamma_opt_ma(single_graph_num,j)/pi,j=1,n_angles_ma(single_graph_num)-n_beta_angles)
+    else
+        write(2,*) single_graph_num, cz_max_save(single_graph_num), C0(single_graph_num), C_opt(single_graph_num), &
+            p_C_max(single_graph_num), p_max, (beta_opt(single_graph_num,j)/pi,j=1,p_max), &
+            (gamma_opt(single_graph_num,j)/pi,j=1,p_max)
+    endif
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! If we are using a subset of graphs, only print that data
+elseif (use_random_graph_subset) then
+    do i = 1,n_random_graphs
+        graph_num = random_graphs(i)
+        if (many_angles) then
+            write(2,*) graph_num, cz_max_save(graph_num), C0(graph_num), C_opt(graph_num), p_C_max(graph_num), p_max, &
+                (beta_opt_ma(graph_num,j)/pi,j=1,n_beta_angles), &
+                (gamma_opt_ma(graph_num,j)/pi,j=1,n_angles_ma(graph_num)-n_beta_angles)
+        else
+            write(2,*) graph_num, cz_max_save(graph_num), C0(graph_num), C_opt(graph_num), p_C_max(graph_num), p_max, &
+                (beta_opt(graph_num,j)/pi,j=1,p_max), &
+                (gamma_opt(graph_num,j)/pi,j=1,p_max)
+        endif
+    enddo
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! Else, we are using all the graphs
+else
+    do graph_num = 1,graph_num_tot
+        if (many_angles) then
+            write(2,*) graph_num, cz_max_save(graph_num), C0(graph_num), C_opt(graph_num), p_C_max(graph_num), p_max, &
+                (beta_opt_ma(graph_num,j)/pi,j=1,n_beta_angles), &
+                (gamma_opt_ma(graph_num,j)/pi,j=1,n_angles_ma(graph_num)-n_beta_angles)
+        else
+            write(2,*) graph_num, cz_max_save(graph_num), C0(graph_num), C_opt(graph_num), p_C_max(graph_num), p_max, &
+                (beta_opt(graph_num,j)/pi,j=1,p_max), &
+                (gamma_opt(graph_num,j)/pi,j=1,p_max)
+        endif
+    enddo
+endif
 
-
-do graph_num = 1,graph_num_tot
-	if (dabs(c_opt(graph_num) - cz_max_save(graph_num)) .lt. 1.d-4) then
-		if (.not. single_graph) print *, graph_num,'fully optimized!'
-	endif
-enddo
+!do graph_num = 1,graph_num_tot
+!	if (dabs(c_opt(graph_num) - cz_max_save(graph_num)) .lt. 1.d-4) then
+!		if (.not. single_graph) print *, graph_num,'fully optimized!'
+!	endif
+!enddo
 close(2)
 
-open(2,file=trim(save_folder)//'Conv_dat',status='unknown')
-do i = 1,n_random_graphs
-	do j = 1,min_good_loops
-		write(2,*) (it_dat(i,j,k),k=1,201)
-	enddo
-enddo
-close(2)
+! open(2,file=trim(save_folder)//'Conv_dat',status='unknown')
+! do i = 1,n_random_graphs
+! 	do j = 1,min_good_loops
+! 		write(2,*) (it_dat(i,j,k),k=1,201)
+! 	enddo
+! enddo
+! close(2)
 
 print *, 'BFGS_loops:', BFGS_loops
 call cpu_time(timef)
