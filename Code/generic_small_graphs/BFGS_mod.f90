@@ -9,7 +9,7 @@ implicit none
 
 INTEGER iter,n,NMAX,ITMAX
 Double precision fret,gtol,p(n),func,EPS,STPMX,TOLX
-PARAMETER (NMAX=500,ITMAX=1000,STPMX=10.d0,EPS=3.d-10,TOLX=4.d0*EPS) 
+PARAMETER (NMAX=500,ITMAX=5000,STPMX=10.d0,EPS=3.d-10,TOLX=4.d0*EPS) 
 EXTERNAL dfunc,func
 ! USES dfunc,func,lnsrch
 
