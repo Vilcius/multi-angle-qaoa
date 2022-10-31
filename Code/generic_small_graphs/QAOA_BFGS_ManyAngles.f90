@@ -20,7 +20,7 @@ double precision, allocatable :: angles_ma(:)
 double precision :: tmp
 
 logical :: more_loops=.true., keepgoing
-logical, parameter :: use_random_graph_subset=.false., generate_random_graph_set=.false.
+logical, parameter :: use_random_graph_subset=.true., generate_random_graph_set=.false.
 integer, parameter :: n_random_graphs=100
 logical :: check_this_graph
 integer :: random_graphs(n_random_graphs)
@@ -122,6 +122,8 @@ do while (more_loops)
 	BFGS_loops=BFGS_loops+1
 	
 	more_graphs=.true.
+
+    open(11,file='small_tesst/ma_p=2/run_5/QAOA_dat', status='old')
 
 	do while (more_graphs)
 		!loop over the graphs of a given n_qubits

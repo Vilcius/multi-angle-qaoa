@@ -243,14 +243,15 @@ subroutine Generate_angles(n_angles,angles)
 		enddo
 	else if (angles_from_smaller_p) then
 		read(11,*) (junk(i),i=1,6),(angles(i),i=1,smaller_p),(angles(i),i=p_max+1,p_max+smaller_p)
-		angles=angles*pi
-		!add a small random perturbation t-o the previous angles
-		do i = 1,p_max-1
-			call random_number(tmp)
-			angles(i) = angles(i) + pi/2.d0*(tmp-0.5d0)/2.d0
-			call random_number(tmp)
-			angles(p_max+i) = angles(p_max+i) + 2.d0*pi*(tmp-0.5d0)/2.d0
-		enddo
+		! angles=angles*pi
+		!add a small random perturbation to the previous angles
+        
+		! do i = 1,p_max-1
+		! 	call random_number(tmp)
+		! 	angles(i) = angles(i) + pi/2.d0*(tmp-0.5d0)/2.d0
+		! 	call random_number(tmp)
+		! 	angles(p_max+i) = angles(p_max+i) + 2.d0*pi*(tmp-0.5d0)/2.d0
+		! enddo
 			call random_number(tmp)
 			angles(p_max) = pi/2.d0*(tmp-0.5d0)
 			call random_number(tmp)
