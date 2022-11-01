@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-runs=5
-tdir="small_tesst"
+runs=10
+tdir="smaller_p"
 small_angs=1
 
 # make the test directory
@@ -11,11 +11,11 @@ mkdir $tdir
 
 # BFGS Loops
 
-for (( b=1 ; b<=1 ; b++ ));
+for (( b=1 ; b<=3 ; b++ ));
 do
-    bdir="bfgs_${b}_gamma"
-    # mkdir $tdir/$bdir
-    # sed -i "12s/.*/integer, parameter :: min_good_loops=$b/g" QAOA_parameters_mod.f90
+    bdir="bfgs_${b}_both"
+     mkdir $tdir/$bdir
+    sed -i "12s/.*/integer, parameter :: min_good_loops=$b/g" QAOA_parameters_mod.f90
     do_ma=1
 
     # if multi-angle or not
@@ -38,16 +38,16 @@ do
             qdir="normal_p=$i"
         fi
 
-        # mkdir $tdir/$bdir/$qdir
-        mkdir $tdir/$qdir
+        mkdir $tdir/$bdir/$qdir
+        # mkdir $tdir/$qdir
 
         echo "p=$i"
 
         # loop through the runs
         for (( ii=1 ; ii<=$runs ; ii++ ));
         do
-            # sed -i "5s/.*/character*200, parameter :: save_folder='$tdir\/$bdir\/$qdir\/run_$ii\/'/g" QAOA_parameters_mod.f90
-            sed -i "5s/.*/character*200, parameter :: save_folder='$tdir\/$qdir\/run_$ii\/'/g" QAOA_parameters_mod.f90
+            sed -i "5s/.*/character*200, parameter :: save_folder='$tdir\/$bdir\/$qdir\/run_$ii\/'/g" QAOA_parameters_mod.f90
+            # sed -i "5s/.*/character*200, parameter :: save_folder='$tdir\/$qdir\/run_$ii\/'/g" QAOA_parameters_mod.f90
             sed -i "10s/.*/integer, parameter :: p_max=$i/g" QAOA_parameters_mod.f90
 
             # if we are using angles from smaller p values, then change the corresponding parameters and file name
@@ -58,8 +58,8 @@ do
                 sii=$(($i-1))
                 sed -i "9s/.*/integer, parameter :: smaller_p=$sii/g" QAOA_parameters_mod.f90
                 # sed -i "245s/file=.*, /file='$tdir\/ma_p=$sii\/run_$ii\/QAOA_dat', /g" QAOA_subroutines_mod.f90
-                sed -i "126s/file=.*, /file='$tdir\/ma_p=$sii\/run_$ii\/QAOA_dat', /g" QAOA_BFGS_ManyAngles.f90
-                # sed -i "245s/file=.*, /file='$tdir\/$bdir\/ma_p='smaller_p'\/run_$ii\/QAOA_dat', /g" QAOA_subroutines_mod.f90
+                # sed -i "126s/file=.*, /file='$tdir\/ma_p=$sii\/run_$ii\/QAOA_dat', /g" QAOA_BFGS_ManyAngles.f90
+                sed -i "126s/file=.*, /file='$tdir\/$bdir\/ma_p=$sii\/run_$ii\/QAOA_dat', /g" QAOA_BFGS_ManyAngles.f90
             fi
 
             echo "run $ii"

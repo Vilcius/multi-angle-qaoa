@@ -123,7 +123,7 @@ do while (more_loops)
 	
 	more_graphs=.true.
 
-    open(11,file='small_tesst/ma_p=2/run_5/QAOA_dat', status='old')
+    open(11,file='smaller_p/bfgs_3_normal/ma_p=2/run_10/QAOA_dat', status='old')
 
 	do while (more_graphs)
 		!loop over the graphs of a given n_qubits

@@ -2,14 +2,14 @@ module parameters
 
 implicit none
 
-character*200, parameter :: save_folder='small_tesst/ma_p=3/run_5/'
+character*200, parameter :: save_folder='smaller_p/bfgs_3_normal/ma_p=3/run_10/'
 character*200, parameter :: graph_file='../../Graph_Files/n=8/graph8c.txt'
 
 integer, parameter :: n_qubits=8
 integer, parameter :: smaller_p=2
 integer, parameter :: p_max=3
 
-integer, parameter :: min_good_loops=1
+integer, parameter :: min_good_loops=3
 integer, parameter :: graph_of_interest=1
 
 integer, parameter :: dim=2**n_qubits, n_edges_max=n_qubits*(n_qubits-1)/2
