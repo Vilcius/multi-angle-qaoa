@@ -242,29 +242,75 @@ subroutine Generate_angles(n_angles,angles)
 			angles(p_max+i) = -3*pi/8+ tmp*0.1d0*pi
 		enddo
 	else if (angles_from_smaller_p) then
-		read(11,*) (junk(i),i=1,6),(angles(i),i=1,smaller_p),(angles(i),i=p_max+1,p_max+smaller_p)
-		! angles=angles*pi
-		!add a small random perturbation to the previous angles
-        
-		! do i = 1,p_max-1
-		! 	call random_number(tmp)
-		! 	angles(i) = angles(i) + pi/2.d0*(tmp-0.5d0)/2.d0
-		! 	call random_number(tmp)
-		! 	angles(p_max+i) = angles(p_max+i) + 2.d0*pi*(tmp-0.5d0)/2.d0
-		! enddo
-			call random_number(tmp)
-			angles(p_max) = pi/2.d0*(tmp-0.5d0)
-			call random_number(tmp)
-			angles(2*p_max) = 2*pi*(tmp-0.5d0)
-		!print *, 'angles:', (angles(i),i=1,2*p)
+        if (many_angles) then
+            ! read in the angles from previous layers
+            read(11,*) (junk(i),i=1,6),(angles(i),i=1,n_qubits*smaller_p) &
+                ,(angles(i),i=n_qubits*p_max+1,n_qubits*p_max+n_edges*smaller_p)
+            ! find maximal degree of each graph
+            max_deg = maxval(vertex_degrees(graph_num,:))
+            ! calculate beta angles
+            do i = 1,n_qubits
+                ! if setting maximal degree vertices to 0
+                ! if (set_max_degree .and. (vertex_degrees(graph_num, i-1) .eq. max_deg)) then
+                !     angles(i) = 0.d0
+                ! else
+                    call random_number(tmp)
+                    angles(i) = beta_max*2.d0*(tmp-0.5d0)
+                ! endif
+            enddo
+            beta_ma(1:n_qubits*p_max) = angles(1:n_qubits*p_max)
+
+            ! calculate gamma angles
+            do i = 1,n_edges
+                q0 = edges(i-1,0)
+                q1 = edges(i-1,1)
+                ! if setting maximal degree vertices to 0
+                ! if (set_max_degree .and. ((vertex_degrees(graph_num, q0) .eq. max_deg) &
+                !     .or. (vertex_degrees(graph_num, q1) .eq.  max_deg))) then
+                !     angles(n_qubits*p_max+i) = 0.d0
+                ! else
+                    call random_number(tmp)
+                    angles(n_qubits*p_max+i) = gamma_max*2.d0*(tmp-0.5d0)
+                ! endif
+            enddo
+            gamma_ma(1:n_angles-p_max*n_qubits) = angles(n_qubits*p_max+1:n_angles)
+            do i = 1,n_qubits
+                call random_number(tmp)
+                angles(n_qubits*smaller_p+i) = pi/2.d0*(tmp-0.5d0)
+            enddo
+            beta_ma(1:n_qubits*p_max) = angles(1:n_qubits*p_max)
+
+            do i = 1,n_edges
+                call random_number(tmp)
+                angles(n_qubits*p_max+n_edges+smaller_p+i) = 2*pi*(tmp-0.5d0)
+            enddo
+            gamma_ma(1:n_angles-p_max*n_qubits) = angles(n_qubits*p_max+1:n_angles)
+
+        else
+            read(11,*) (junk(i),i=1,6),(angles(i),i=1,smaller_p),(angles(i),i=p_max+1,p_max+smaller_p)
+            ! angles=angles*pi
+            !add a small random perturbation to the previous angles
+            
+            ! do i = 1,p_max-1
+            ! 	call random_number(tmp)
+            ! 	angles(i) = angles(i) + pi/2.d0*(tmp-0.5d0)/2.d0
+            ! 	call random_number(tmp)
+            ! 	angles(p_max+i) = angles(p_max+i) + 2.d0*pi*(tmp-0.5d0)/2.d0
+            ! enddo
+            call random_number(tmp)
+            angles(p_max) = pi/2.d0*(tmp-0.5d0)
+            call random_number(tmp)
+            angles(2*p_max) = 2*pi*(tmp-0.5d0)
+            !print *, 'angles:', (angles(i),i=1,2*p)
+        endif
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! if ma-QAOA
 	else if (many_angles) then
-        ! find maximal degree of each graph
+        ! find maximal degree of eah graph
         max_deg = maxval(vertex_degrees(graph_num,:))
         ! calculate beta angles
-		do i = 1,n_qubits
+		do i = 1,n_qubits*p_max
             ! if setting maximal degree vertices to 0
             ! if (set_max_degree .and. (vertex_degrees(graph_num, i-1) .eq. max_deg)) then
             !     angles(i) = 0.d0
@@ -273,20 +319,20 @@ subroutine Generate_angles(n_angles,angles)
                 angles(i) = beta_max*2.d0*(tmp-0.5d0)
             ! endif
     	enddo
-    	beta_ma = angles(1:n_qubits*p_max)
+    	beta_ma(1:n_qubits*p_max) = angles(1:n_qubits*p_max)
 
         ! calculate gamma angles
-    	do i = 1,n_edges
+    	do i = 1,n_edges*p_max
             q0 = edges(i-1,0)
             q1 = edges(i-1,1)
             ! if setting maximal degree vertices to 0
-            if (set_max_degree .and. ((vertex_degrees(graph_num, q0) .eq. max_deg) &
-                .or. (vertex_degrees(graph_num, q1) .eq.  max_deg))) then
-                angles(n_qubits*p_max+i) = 0.d0
-            else
+            ! if (set_max_degree .and. ((vertex_degrees(graph_num, q0) .eq. max_deg) &
+            !     .or. (vertex_degrees(graph_num, q1) .eq.  max_deg))) then
+            !     angles(n_qubits*p_max+i) = 0.d0
+            ! else
                 call random_number(tmp)
                 angles(n_qubits*p_max+i) = gamma_max*2.d0*(tmp-0.5d0)
-            endif
+            ! endif
     	enddo
     	gamma_ma(1:n_angles-p_max*n_qubits) = angles(n_qubits*p_max+1:n_angles)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
