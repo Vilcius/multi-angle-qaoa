@@ -2,12 +2,12 @@ module parameters
 
 implicit none
 
-character*200, parameter :: save_folder='wtf_angles/ma_p=3/run_5/'
+character*200, parameter :: save_folder='smaller_p/bfgs_1_normal/ma_p=1/run_6/'
 character*200, parameter :: graph_file='../../Graph_Files/n=8/graph8c.txt'
 
 integer, parameter :: n_qubits=8
 integer, parameter :: smaller_p=1
-integer, parameter :: p_max=3
+integer, parameter :: p_max=1
 
 integer, parameter :: min_good_loops=1
 integer, parameter :: graph_of_interest=1
@@ -60,6 +60,7 @@ integer :: weight_num
 integer, allocatable :: z_max(:)
 integer, allocatable :: good_loops(:), vertex_degrees(:,:)
 logical, allocatable :: all_odd_degree(:),all_even_degree(:)
-logical :: set_max_degree=.false.
+logical :: set_max_degree_beta=.false.
+logical :: set_max_degree_gamma=.false.
 
 end module parameters

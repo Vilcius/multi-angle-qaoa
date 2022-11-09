@@ -124,7 +124,7 @@ do while (more_loops)
 	more_graphs=.true.
 
     if (angles_from_smaller_p) then
-        open(11,file='smaller_p/bfgs_3_normal/ma_p=2/run_10/QAOA_dat', status='old')
+        open(11,file='smaller_p/bfgs_1_normal/ma_p=1/run_3/QAOA_dat', status='old')
     endif
 
 	do while (more_graphs)
