@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 runs=10
-tdir="smaller_p"
+tdir="Results/smaller_p"
 small_angs=1
 
 # make the test directory
@@ -13,7 +13,7 @@ mkdir $tdir
 
 for (( b=1 ; b<=3 ; b++ ));
 do
-    bdir="bfgs_${b}_normal"
+    bdir="bfgs_${b}_gamma"
     mkdir $tdir/$bdir
     sed -i "12s/.*/integer, parameter :: min_good_loops=$b/g" QAOA_parameters_mod.f90
     do_ma=1

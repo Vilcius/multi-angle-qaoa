@@ -166,9 +166,6 @@ return
 END subroutine dfpmin
 
 
-
-
-
 SUBROUTINE lnsrch(n,xold,fold,g,p,x,f,stpmax,check,func) 
 implicit none
 INTEGER n
