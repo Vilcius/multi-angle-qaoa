@@ -1,68 +1,106 @@
 #!/usr/bin/env bash
+# author: Anthony Wilkie
 
-runs=10
-tdir="Results/smaller_p"
-small_angs=1
+# The directory where all the results are stored
+# if on the server 
+rdir="$HOME/papers/ma_qaoa/Results"
+# if on local device
+# rdir="$HOME/Papers/Maxcut/multi-angle-qaoa/Results"
+tdir=$rdir
 
-# make the test directory
-mkdir $tdir
+# File variables
+param_file="QAOA_parameters_mod.f90"
+maqaoa_file="QAOA_BFGS_ManyAngles.f90"
 
-# for (( m=1 ; m<=1 ; m++ ));
+# choose the parameters for the current test(s)
+runs=100
+p_max_ma=3
+p_max_normal=6
+multi_angle=1
+more_bfgs=0
 
-# BFGS Loops
+# Choose the heuristic for the test
+max_deg_beta=0
+max_deg_gamma=0
+prev_layer=0
 
-for (( b=1 ; b<=3 ; b++ ));
+
+# Set parameter file and directory for previous layer heuristic
+if [[ $prev_layer == 1 ]]; then
+    tdir="${tdir}/prev_layer"
+    mkdir $tdir
+fi
+
+
+# Set parameter file and directory for max degree heuristic
+if [[ $max_deg_beta == 1 && $max_deg_gamma == 1 ]]; then
+    tdir="${tdir}/max_degree_both"
+    mkdir $tdir
+
+    sed -i "s/\(set_max_degree_\(beta\|gamma\)=\).false./\1.true./g" $param_file
+elif [[ $max_deg_beta == 1 ]];
+then
+    tdir="${tdir}/max_degree_beta"
+    mkdir $tdir
+
+    sed -i "s/\(set_max_degree_beta=\).false./\1.true./g" $param_file
+    sed -i "s/\(set_max_degree_gamma=\).true./\1.false./g" $param_file
+elif [[ $max_deg_gamma == 1 ]];
+then
+    tdir="${tdir}/max_degree_gamma"
+    mkdir $tdir
+
+    sed -i "s/\(set_max_degree_beta=\).true./\1.false./g" $param_file
+    sed -i "s/\(set_max_degree_gamma=\).false./\1.true./g" $param_file
+else
+    sed -i "s/\(set_max_degree_\(beta\|gamma\)=\).true./\1.false./g" $param_file
+fi
+
+
+# set parameters if doing ma-QAOA
+if [[ $multi_angle == 1 ]]; then
+    p_max=$p_max_ma
+    sed -i "s/\(many_angles=\).false./\1.true./g" $param_file
+    sed -i "s/\(variable_\(beta\|gamma\)=\).false./\1.true./g" $param_file
+else
+    p_max=$p_max_normal
+    sed -i "s/\(many_angles=\).true./\1.false./g" $param_file
+    sed -i "s/\(variable_\(beta\|gamma\)=\).true./\1.false./g" $param_file
+fi
+
+
+# run the tests for each value of p
+for (( i=1 ; i<=$p_max ; i++ ));
 do
-    bdir="bfgs_${b}_gamma"
-    mkdir $tdir/$bdir
-    sed -i "12s/.*/integer, parameter :: min_good_loops=$b/g" QAOA_parameters_mod.f90
-    do_ma=1
-
-    # if multi-angle or not
     if [[ $do_ma == 1 ]]; then
-            max_p=3
-            sed -i '34s/.*/logical, parameter :: many_angles=.true./g' QAOA_parameters_mod.f90
-            sed -i '35s/.*/logical, parameter :: variable_beta=.true.,variable_gamma=.true./g' QAOA_parameters_mod.f90
-        else
-            max_p=6
-            sed -i '34s/.*/logical, parameter :: many_angles=.false./g' QAOA_parameters_mod.f90
-            sed -i '35s/.*/logical, parameter :: variable_beta=.false.,variable_gamma=.false./g' QAOA_parameters_mod.f90
+        tdir="${tdir}/ma_p=$i"
+        mkdir $tdir
+    else
+        tdir="${tdir}/normal_p=$i"
+        mkdir $tdir
     fi
 
-    # loop through the p's
-    for (( i=1 ; i<=$max_p ; i++ ));
+    # loop through the runs
+    for (( ii=1 ; ii<=$runs ; ii++ ));
     do
-        if [[ $do_ma == 1 ]]; then
-            qdir="ma_p=$i"
+        tdir="${tdir}/run_${ii}"
+
+        sed -i "s/\(save_folder='\).*/\1$tdir\/'/g" $param_file
+        sed -i "s/\(p_max=\)\d\+/\1$i/g" $param_file
+
+        # if we are using angles from smaller p values, then change the corresponding parameters and file name
+        if [[ $prev_layer == 1  ]] && [[ $i -ge 2 ]]; then
+            sed -i "s/\(angles_from_smaller_p=\).false./\1.true./g" $param_file
+            sii=$(($i-1))
+            sed -i "s/\( smaller_p=\)\d\+/\1$sii/g" $param_file
+            sed -i "s/\(open(11,file=\1.*,/\1$tdir\/QAOA_dat',/g" $maqaoa_file
         else
-            qdir="normal_p=$i"
+            sed -i "s/\(angles_from_smaller_p=\).true./\1.false./g" $param_file
         fi
 
-        mkdir $tdir/$bdir/$qdir
-        # mkdir $tdir/$qdir
-
-        echo "p=$i"
-
-        # loop through the runs
-        for (( ii=1 ; ii<=$runs ; ii++ ));
-        do
-            sed -i "5s/.*/character*200, parameter :: save_folder='$tdir\/$bdir\/$qdir\/run_$ii\/'/g" QAOA_parameters_mod.f90
-            # sed -i "5s/.*/character*200, parameter :: save_folder='$tdir\/$qdir\/run_$ii\/'/g" QAOA_parameters_mod.f90
-            sed -i "10s/.*/integer, parameter :: p_max=$i/g" QAOA_parameters_mod.f90
-
-            # if we are using angles from smaller p values, then change the corresponding parameters and file name
-            sed -i "21s/.*/logical, parameter :: angles_from_smaller_p=.false./g" QAOA_parameters_mod.f90
-            if [[ $small_angs == 1  ]] && [[ $i -ge 2 ]]; then
-
-                sed -i "21s/.*/logical, parameter :: angles_from_smaller_p=.true./g" QAOA_parameters_mod.f90
-                sii=$(($i-1))
-                sed -i "9s/.*/integer, parameter :: smaller_p=$sii/g" QAOA_parameters_mod.f90
-                # sed -i "127s/file=.*, /file='$tdir\/ma_p=$sii\/run_$ii\/QAOA_dat', /g" QAOA_BFGS_ManyAngles.f90
-                sed -i "127s/file=.*, /file='$tdir\/$bdir\/ma_p=$sii\/run_$ii\/QAOA_dat', /g" QAOA_BFGS_ManyAngles.f90
-            fi
-
-            echo "run $ii"
-            gfortran QAOA_BFGS_ManyAngles.f90 -o q.exe && ./q.exe
-        done
+        # print to the terminal what test we are on
+        echo "p=$i: run $ii"
+        gfortran $maqaoa_file -o q.exe && ./q.exe
     done
 done
+
